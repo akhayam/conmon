@@ -3,6 +3,13 @@
 # This code correlate container INGRESS packets with disk access
 #
 # USAGE: python container_monitor.py -h
+# Output log file format
+# time=1477510449.34:
+# <data-type>, <src-ip>, <dst-ip>, <src-port>, <dst-port>: <total-bytes>, <total-pkts>
+# TCP_DATA, 172.17.0.1, 172.17.0.2, 37626, 3306: 917, 6
+# <data-type>, <pid>: <total-bytes>, <total-disk-access>
+# VFS_WRITE, 9896: 64541330, 4147
+# VFS_READ, 9896: 43287429, 2662
 
 from __future__ import print_function
 from bcc import BPF
@@ -116,7 +123,7 @@ if args.docker_info:
 elif args.lxc_info:
     container_names = args.lxc_info.split(',')
 else:
-    parser.error('Specify either docker info or lxc info, use -h for more details'
+    parser.error('Specify either docker info or lxc info, use -h for more details')
 
 
 for name in container_names:
