@@ -1,14 +1,15 @@
-// Copyright (c) PLUMgrid, Inc.
-// Licensed under the Apache License, Version 2.0 (the "License")
+// Licensed under the Apache License, Version 2.0 (the 'License')
 
-// This code calculate the disk and network related stats and
+// This code calculate the disk and network related statistics and
 // use maps to pass them to userspace.
 
-// This program is made by joining multiple code snippet
+// This program is made by joining multiple code snippets
 // from iovisor/bcc/{examples,tools} and tweeking them
-// according to the requirement.
-// Especially http filter by mbertrone
-// fileslower/biosnoop by brendangregg
+// according to the requirement of the container monitoring
+// userspace program.
+// In particular, the two examples that are used heavily in this code are:
+// http_filter by mbertrone.
+// disksnoop and fileslower by brendangregg
 
 #include <uapi/linux/ptrace.h>
 #include <net/sock.h>
@@ -39,11 +40,9 @@ enum disk_type {
 typedef struct api_key {
     u32 sip;
     u32 dip;
+    u16 sport;
     u16 dport;
-    u16 api_type;
-    /* Ignore source port to
-    reduce number of rows
-    in the table */
+    u32 api_type;
 } api_key_t;
 
 /*
@@ -145,7 +144,6 @@ static int vfs_func(struct pt_regs *ctx, struct file *file,
     if (de->d_iname[0] == 0)
         return 0;
 
-    //bpf_trace_printk("I am in vfs_func %d\n", count);
     value_ptr = disk_map.lookup_or_init(&key, &value);
     value_ptr->bytes += count;
     value_ptr->count++;
@@ -167,7 +165,7 @@ int vfs_write_func(struct pt_regs *ctx, struct file *file,
 /*
    eBPF program.
    Filter IP and TCP packets, having payload not empty
-   and containing "HTTP", "GET", "POST" ... as first bytes of payload
+   and containing 'HTTP', 'GET', 'POST' ... as first bytes of payload
 */
 int hdr_parse(struct __sk_buff *skb) {
     u8 *cursor = 0;
@@ -192,14 +190,8 @@ int hdr_parse(struct __sk_buff *skb) {
     struct tcp_t *tcp = cursor_advance(cursor, sizeof(*tcp));
 
     //calculate ip header length
-    //value to multiply * 4
-    //e.g. ip->hlen = 5 ; IP Header Length = 5 x 4 byte = 20 byte
-    ip_header_length = ip->hlen << 2;    //SHL 2 -> *4 multiply
-
-    //calculate tcp header length
-    //value to multiply *4
-    //e.g. tcp->offset = 5 ; TCP Header Length = 5 x 4 byte = 20 byte
-    tcp_header_length = tcp->offset << 2; //SHL 2 -> *4 multiply
+    ip_header_length = ip->hlen << 2;
+    tcp_header_length = tcp->offset << 2;
 
     //calculate patload offset and length
     payload_offset = ETH_HLEN + ip_header_length + tcp_header_length;
@@ -213,6 +205,7 @@ int hdr_parse(struct __sk_buff *skb) {
     key.sip = ip->src;
     key.dip = ip->dst;
     key.dport = tcp->dst_port;
+    key.sport = tcp->src_port;
     key.api_type = TCP;
 
     counter_t *value_ptr, value;

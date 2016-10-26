@@ -1,7 +1,8 @@
 #!/usr/bin/python
-# Copyright (c) PLUMgrid, Inc.
-# Licensed under the Apache License, Version 2.0 (the "License")
+# Licensed under the Apache License, Version 2.0 (the 'License')
 # This code correlate container INGRESS packets with disk access
+#
+# USAGE: python container_monitor.py -h
 
 from __future__ import print_function
 from bcc import BPF
@@ -17,7 +18,9 @@ import argparse
 ipr = IPRoute()
 ipdb = IPDB(nl=ipr)
 
+# This function get all child PID of the the parent process
 def get_all_pids_of_container(container_pid):
+   # Number of pids returned by this bash command is one PID per line.
     pid_cmd = [ 'bash', '-c', '. getcpid.sh; getcpid ' + container_pid ]
     pid_cmd_output = subprocess.check_output(pid_cmd)
     res = filter( bool, pid_cmd_output.split('\n') )
@@ -27,6 +30,20 @@ def get_docker_info(docker_details):
     info = docker_details.split(':')
     return info[1], info[0]
 
+# This command returns the lxc related info.
+# We are only interested in PID and Link name.
+# Sample output shown below
+# Name:			lxc1
+# State:		Running
+# PID:			5432
+# CPU use:		0.02 seconds
+# BlKIO use:		0 bytes
+# Memory use:		292.00 KiB
+# KMem use:		0 bytes
+# Link:			vethNDMBPI
+#  TX bytes:		1.27KiB
+#  RX bytes:		4.92KiB
+#  Total bytes:		6.19KiB
 def get_lxc_info(lxc_name):
     info_cmd = [ 'bash', '-c', 'lxc-info --name ' + lxc_name ]
     cmd_output = subprocess.check_output(info_cmd).split('\n')
@@ -54,10 +71,10 @@ def get_disk_access_type(number):
 def write_api_table_and_reset(api_map, tracefile):
     for key in api_map:
         try:
-            tracefile.write('%s %s, %s, %d: %d, %d\n' % (get_api_types(key.api_type),
+            tracefile.write('%s, %s, %s, %d, %d: %d, %d\n' % (get_api_types(key.api_type),
               socket.inet_ntoa(struct.pack('=L',socket.htonl(key.sip))),
               socket.inet_ntoa(struct.pack('=L', socket.htonl(key.dip))),
-              key.dport, api_map[key].bytes, api_map[key].count))
+              key.sport, key.dport, api_map[key].bytes, api_map[key].count))
         except Exception:
             traceback.print_exc()
     api_map.clear()
@@ -67,7 +84,7 @@ def write_disk_table_and_reset(disk_map, pid_list, total_containers, tracefile):
         for container_number in range(0, total_containers):
             try:
                 if key.process_id in pid_list[j]:
-                    tracefile[j].write('%s %s: %d, %d\n' %
+                    tracefile[j].write('%s, %s: %d, %d\n' %
                       (get_disk_access_type(key.disk_type),
                       key.process_id, disk_map[key].bytes,
                       disk_map[key].count))
@@ -99,7 +116,7 @@ if args.docker_info:
 elif args.lxc_info:
     container_names = args.lxc_info.split(',')
 else:
-    parser.error("Specify either docker info or lxc info, use -h for more details")
+    parser.error('Specify either docker info or lxc info, use -h for more details'
 
 
 for name in container_names:
@@ -109,37 +126,37 @@ for name in container_names:
         container_details.append(get_lxc_info(name))
     logfile_names.append(name)
     container_interface.append(ipdb.interfaces[container_details[total_containers][1]])
-    bpf_programs.append(BPF(src_file = "container_monitor.c", debug = 0))
-    logfiles.append(open(logfile_names[total_containers]+".log", "a+", 0))
-    pkt_monitors.append(bpf_programs[total_containers].load_func("hdr_parse", BPF.SCHED_CLS))
+    bpf_programs.append(BPF(src_file = 'container_monitor.c', debug = 0))
+    logfiles.append(open(logfile_names[total_containers]+'.log', 'a+', 0))
+    pkt_monitors.append(bpf_programs[total_containers].load_func('hdr_parse', BPF.SCHED_CLS))
     total_containers += 1
 
-bpf_programs[0].attach_kprobe(event="vfs_read", fn_name="vfs_read_func")
-bpf_programs[0].attach_kprobe(event="vfs_write", fn_name="vfs_write_func")
+bpf_programs[0].attach_kprobe(event='vfs_read', fn_name='vfs_read_func')
+bpf_programs[0].attach_kprobe(event='vfs_write', fn_name='vfs_write_func')
 
-bpf_programs[0].attach_kprobe(event="blk_start_request", fn_name="io_trace_start")
-bpf_programs[0].attach_kprobe(event="blk_mq_start_request", fn_name="io_trace_start")
-bpf_programs[0].attach_kprobe(event="blk_account_io_completion", fn_name="io_trace_completion")
+bpf_programs[0].attach_kprobe(event='blk_start_request', fn_name='io_trace_start')
+bpf_programs[0].attach_kprobe(event='blk_mq_start_request', fn_name='io_trace_start')
+bpf_programs[0].attach_kprobe(event='blk_account_io_completion', fn_name='io_trace_completion')
 
 for j in range(0, total_containers):
-    ipr.tc("add", "sfq", container_interface[j].index, "1:")
-    ipr.tc("add-filter", "bpf", container_interface[j].index, ":1", fd=pkt_monitors[j].fd,
-      name=pkt_monitors[j].name, parent="1:", action="ok", classid=1)
+    ipr.tc('add', 'sfq', container_interface[j].index, '1:')
+    ipr.tc('add-filter', 'bpf', container_interface[j].index, ':1', fd=pkt_monitors[j].fd,
+      name=pkt_monitors[j].name, parent='1:', action='ok', classid=1)
 
 try:
     while (1):
         container_pid_list = []
         time.sleep(args.map_polling_interval)
         for j in range(0, total_containers):
-            logfiles[j].write("time=%s:\n" % time.time())
+            logfiles[j].write('time=%s:\n' % time.time())
             container_pid_list.append(get_all_pids_of_container(container_details[j][0]))
 
         for j in range(0, total_containers):
-            api_map = bpf_programs[j]["api_map"]
+            api_map = bpf_programs[j]['api_map']
             if len(api_map) > 0:
                 write_api_table_and_reset(api_map, logfiles[j])
 
-        disk_map = bpf_programs[0]["disk_map"]
+        disk_map = bpf_programs[0]['disk_map']
         if len(disk_map) > 0:
             write_disk_table_and_reset(disk_map, container_pid_list, total_containers, logfiles)
 
@@ -147,4 +164,4 @@ except Exception as e:
     traceback.print_exc()
 finally:
     for j in range(0, total_containers):
-        ipr.tc("del", "sfq", container_interface[j].index, "1:")
+        ipr.tc('del', 'sfq', container_interface[j].index, '1:')
