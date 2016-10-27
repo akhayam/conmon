@@ -197,6 +197,7 @@ int hdr_parse(struct __sk_buff *skb) {
     payload_offset = ETH_HLEN + ip_header_length + tcp_header_length;
     payload_length = ip->tlen - ip_header_length - tcp_header_length;
 
+    //This drop is to ignore any ack/handshakes to reduce TCP traffic noise
     if(payload_length < 1) {
         return 1;
     }
