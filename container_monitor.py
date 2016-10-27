@@ -37,7 +37,7 @@ def get_all_pids_of_container(container_pid):
 
 def get_docker_info(docker_details):
     [veth, pid] = docker_details.split(':')
-    return [veth, pid]
+    return [pid, veth]
 
 # This command returns the lxc related info.
 # We are only interested in PID and Link name.
@@ -134,7 +134,7 @@ for name in container_names:
     elif args.lxc_info:
         container_details.append(get_lxc_info(name))
     logfile_names.append(name)
-    container_interface.append(ipdb.interfaces[container_details[total_containers][0]])
+    container_interface.append(ipdb.interfaces[container_details[total_containers][1]])
     bpf_programs.append(BPF(src_file = 'container_monitor.c', debug = 0))
     logfiles.append(open(logfile_names[total_containers]+'.log', 'a+', 0))
     pkt_monitors.append(bpf_programs[total_containers].load_func('hdr_parse', BPF.SCHED_CLS))
