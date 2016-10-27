@@ -113,11 +113,11 @@ pkt_monitors = []
 parser = argparse.ArgumentParser(description='container monitor tool.')
 parser.add_argument('-d', action='store', dest='docker_info',
                     help='''Specify comma seperated dockers pid
-                    and veth name as sting in format PID:veth''')
+                    and veth name as sting in format veth:pid''')
 parser.add_argument('-l', action='store', dest='lxc_info',
                     help='Specify comma seperated lxcs name as string')
 parser.add_argument('-i', action='store', dest='map_polling_interval', default=60,
-                    type=int, help='Specify maps polling interval')
+                    type=int, help='Specify maps polling interval (sec)')
 args = parser.parse_args()
 
 if args.docker_info:
