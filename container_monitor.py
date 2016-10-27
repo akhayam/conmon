@@ -10,6 +10,8 @@
 # <data-type>, <pid>: <total-bytes>, <total-disk-access>
 # VFS_WRITE, 9896: 64541330, 4147
 # VFS_READ, 9896: 43287429, 2662
+#
+# Copyright 2016 Ali Khayam
 
 from __future__ import print_function
 from bcc import BPF

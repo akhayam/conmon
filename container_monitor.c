@@ -10,6 +10,9 @@
 // In particular, the two examples that are used heavily in this code are:
 // http_filter by mbertrone.
 // disksnoop and fileslower by brendangregg
+//
+// Copyright 2016 Ali Khayam
+
 
 #include <uapi/linux/ptrace.h>
 #include <net/sock.h>
