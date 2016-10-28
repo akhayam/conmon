@@ -6,7 +6,7 @@
 * [Usage](#usage)
 
 ## Introduction
-Conmon is a container monitoring tool that uses IO Visor BCC's
+Conmon is a container monitoring tool that uses ebpf's
 tracing capabilities to provide in-kernel hooks for monitoring 
 network traffic and disk activities.
 A userspace utility loads the kernel-space program using IO Visor BCC tools,
@@ -62,3 +62,18 @@ The command for LXC containers would be:
 sudo python container_monitor.py -l LXC_NAME_1, ..., LXC_NAME_n 
 ```
 Note that in the LXC case we do not need to specify veth interfaces.
+The default polling interval to read from kernel space is 60 sec.
+
+The values read from ebpf maps are printed in log files in the folder where the program is running.
+A separate log file will be generated for each container with the name 'veth:pid.log' for dockers
+and 'lxc_name.log' for LXCs.
+
+```bash
+time=1477510449.34:
+<data-type>, <src-ip>, <dst-ip>, <src-port>, <dst-port>: <total-bytes>, <total-pkts>
+TCP_DATA, 172.17.0.1, 172.17.0.2, 37626, 3306: 917, 6
+<data-type>, <pid>: <total-bytes>, <total-disk-access>
+VFS_WRITE, 9896: 64541330, 4147
+VFS_READ, 9896: 43287429, 2662
+```
+
