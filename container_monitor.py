@@ -116,14 +116,14 @@ bpf_programs = []
 logfiles = []
 pkt_monitors = []
 
-parser = argparse.ArgumentParser(description='container monitor tool.')
+parser = argparse.ArgumentParser(description='Container Monitor Tool.')
 parser.add_argument('-d', action='store', dest='docker_info',
-                    help='''Specify comma seperated dockers pid
-                    and veth name as sting in format veth:pid''')
+                    help='''Specify comma-seperated docker pid's
+                    and veth names as strings in format veth:pid''')
 parser.add_argument('-l', action='store', dest='lxc_info',
-                    help='Specify comma seperated lxcs name as string')
+                    help='Specify comma-seperated LXC names as strings')
 parser.add_argument('-i', action='store', dest='map_polling_interval', default=60,
-                    type=int, help='Specify maps polling interval (sec)')
+                    type=int, help='Specify polling interval for reading bpf maps (sec)')
 args = parser.parse_args()
 
 if args.docker_info:
