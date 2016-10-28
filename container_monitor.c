@@ -1,15 +1,15 @@
 // Licensed under the Apache License, Version 2.0 (the 'License')
 
-// This code calculate the disk and network related statistics and
-// use maps to pass them to userspace.
+// This code calculates disk and network traffic statistics and
+//   use maps to pass them to userspace.
 
-// This program is made by joining multiple code snippets
-// from iovisor/bcc/{examples,tools} and tweeking them
-// according to the requirement of the container monitoring
-// userspace program.
-// In particular, the two examples that are used heavily in this code are:
-// http_filter by mbertrone.
-// disksnoop and fileslower by brendangregg
+// This program is made by adapting code snippets
+//   from iovisor/bcc/{examples,tools} and tweeking them
+//   according to the requirement of the container monitoring
+//   userspace program.
+//   In particular, the two examples that are used heavily in this code are:
+//     http_filter by mbertrone
+//     disksnoop and fileslower by brendangregg
 //
 // Copyright 2016 Ali Khayam
 
@@ -38,7 +38,7 @@ enum disk_type {
 };
 
 /*
-  Key stuct is for API hash table.
+  Key struct is for API hash table.
 */
 typedef struct api_key {
     u32 sip;
@@ -59,7 +59,7 @@ typedef struct disk_key {
 } disk_key_t;
 
 /*
-   This is generic structure to save
+   This is a generic structure to save
    API/disk_access count and their respective
    bytes.
 */
@@ -70,7 +70,7 @@ typedef struct counter {
 
 /*
   These are the main tables that will record
-  api/disk data in kernel for userspace program to read.
+  api/disk data in kernel for a userspace program to read.
 */
 BPF_HASH(api_map, api_key_t, counter_t);
 BPF_HASH(disk_map, disk_key_t, counter_t);
@@ -78,7 +78,7 @@ BPF_HASH(disk_map, disk_key_t, counter_t);
 /*
   This is temporary table for having sync up
   between blk io start and completion. This table shouldn't
-  be access by userspace program. Keys life in this table
+  be accessed by a userspace program. Keys life in this table
   is from blk io start to blk io completion.
 */
 BPF_HASH(tmp_io_start, struct request *, u32);
@@ -87,7 +87,7 @@ BPF_HASH(tmp_io_start, struct request *, u32);
  Disk Functions TODO:
     - use pid_map to filter out pids that are related to
       containers under observation. This will reduce disk_map size.
-      However, trade off would be that userspace would have to update
+      However, the trade off would be that the userspace would have to update
       the pid map table regularly (for unstable containers).
 
     - stash start timestamp by request ptr
@@ -100,9 +100,9 @@ int io_trace_start(struct pt_regs *ctx, struct request *req) {
 }
 
 /*
-  This function records block io stats ( read/write bytes & total accesses )
+  This function records block io stats ( read/write bytes & total accesses ).
   It save them with respect to requesting process ID so we can filter and
-  categorize them according to their container.
+  categorize them according to their respective containers.
 */
 int io_trace_completion(struct pt_regs *ctx, struct request *req) {
     u32 *pid_p;
@@ -128,9 +128,9 @@ int io_trace_completion(struct pt_regs *ctx, struct request *req) {
 }
 
 /*
-  This function records vfs stats ( read/write bytes & total accesses )
-  It save them with respect to requesting process ID so we can filter and
-  categorize them according to their container.
+  This function records vfs stats ( read/write bytes & total accesses ).
+  It save them with respect to the requesting process ID so we can filter and
+  categorize them according to their respective containers.
 */
 static int vfs_func(struct pt_regs *ctx, struct file *file,
     char __user *buf, size_t count, u32 disk_type)

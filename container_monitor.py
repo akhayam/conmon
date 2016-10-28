@@ -1,8 +1,12 @@
 #!/usr/bin/python
 # Licensed under the Apache License, Version 2.0 (the 'License')
-# This code correlate container INGRESS packets with disk access
+#
+# This code reads BPF maps that have TCP, HTTP and disk read/write data
+#    for all containers provided in the command line.
+# Maps data is subsequently written to a log file---one logfile per container.
 #
 # USAGE: python container_monitor.py -h
+#
 # Output log file format
 # time=1477510449.34:
 # <data-type>, <src-ip>, <dst-ip>, <src-port>, <dst-port>: <total-bytes>, <total-pkts>
@@ -27,7 +31,7 @@ import argparse
 ipr = IPRoute()
 ipdb = IPDB(nl=ipr)
 
-# This function get all child PID of the the parent process
+# This function gets all child PIDs of the the parent process
 def get_all_pids_of_container(container_pid):
    # Number of pids returned by this bash command is one PID per line.
     pid_cmd = [ 'bash', '-c', '. getcpid.sh; getcpid ' + container_pid ]
@@ -35,13 +39,15 @@ def get_all_pids_of_container(container_pid):
     res = filter( bool, pid_cmd_output.split('\n') )
     return map ( int, res )
 
+# This function separates and returns the veth:pid of a docker container
+# TODO: Explore a better way of extracting this info from docker name or ID
 def get_docker_info(docker_details):
     [veth, pid] = docker_details.split(':')
     return [pid, veth]
 
-# This command returns the lxc related info.
+# This command returns info related to an LXC container.
 # We are only interested in PID and Link name.
-# Sample output shown below
+# Sample output shown below:
 # Name:			lxc1
 # State:		Running
 # PID:			5432

@@ -1,5 +1,8 @@
 # Licensed under the Apache License, Version 2.0 (the "License")
-# This program get all child PID/TID of a program (PID)
+#
+# This program gets all child PID/TID of a program (PID)
+#
+# Usage: ./getcpid.sh parent_pid
 #
 # Copyright 2016 Ali Khayam
 
