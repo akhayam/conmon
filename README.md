@@ -1,8 +1,17 @@
 # Installing BCC
 
+* [Introduction](#introduction)
 * [Install IO Visor](#iovisor-install)
 * [Install pyroute2](#pyroute-install)
 * [Usage](#usage)
+
+## Introduction
+Conmon is a container monitoring tool that uses IO Visor BCC's
+tracing capabilities to provide in-kernel hooks for monitoring 
+network traffic and disk activities.
+A userspace utility loads the kernel-space program using IO Visor BCC tools,
+reads the IO Visor maps periodically, and correlates the
+traffic and disk activity to specific containers.
 
 ## Install IO Visor
 
