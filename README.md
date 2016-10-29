@@ -68,7 +68,9 @@ The command for LXC containers would be:
 sudo python container_monitor.py -l LXC_NAME_1, ..., LXC_NAME_n 
 ```
 Note that in the LXC case we do not need to specify veth interfaces.
-The default polling interval to read from kernel space is 60 sec.
+
+The ```-i``` option can be optionally used to specify polling interval for kernel ebpf maps.
+The default polling interval is 60 sec.
 
 The values read from ebpf maps are printed in log files in the folder where the program is running.
 A separate log file will be generated for each container with the name 'veth:pid.log' for dockers

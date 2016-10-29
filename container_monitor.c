@@ -32,9 +32,7 @@ enum api_types {
 
 enum disk_type {
     VFS_READ = 1,
-    VFS_WRITE,
-    BLK_READ,
-    BLK_WRITE
+    VFS_WRITE
 };
 
 /*
@@ -76,58 +74,6 @@ BPF_HASH(api_map, api_key_t, counter_t);
 BPF_HASH(disk_map, disk_key_t, counter_t);
 
 /*
-  This is temporary table for having sync up
-  between blk io start and completion. This table shouldn't
-  be accessed by a userspace program. Keys life in this table
-  is from blk io start to blk io completion.
-*/
-BPF_HASH(tmp_io_start, struct request *, u32);
-
-/*
- Disk Functions TODO:
-    - use pid_map to filter out pids that are related to
-      containers under observation. This will reduce disk_map size.
-      However, the trade off would be that the userspace would have to update
-      the pid map table regularly (for unstable containers).
-
-    - stash start timestamp by request ptr
-*/
-int io_trace_start(struct pt_regs *ctx, struct request *req) {
-    u32 pid;
-    pid = bpf_get_current_pid_tgid();
-    tmp_io_start.lookup_or_init(&req, &pid);
-    return 0;
-}
-
-/*
-  This function records block io stats ( read/write bytes & total accesses ).
-  It save them with respect to requesting process ID so we can filter and
-  categorize them according to their respective containers.
-*/
-int io_trace_completion(struct pt_regs *ctx, struct request *req) {
-    u32 *pid_p;
-    disk_key_t key;
-
-    counter_t *value_ptr, value;
-    value.bytes = 0;
-    value.count = 0;
-
-    pid_p = tmp_io_start.lookup(&req);
-    if (pid_p != 0) {
-        key.process_id = (*pid_p);
-        if (req->cmd_flags & REQ_WRITE)
-            key.disk_type = BLK_WRITE;
-        else
-            key.disk_type = BLK_READ;
-        value_ptr = disk_map.lookup_or_init(&key, &value);
-        value_ptr->bytes += req->__data_len;
-        value_ptr->count++;
-        tmp_io_start.delete(&req);
-    }
-    return 0;
-}
-
-/*
   This function records vfs stats ( read/write bytes & total accesses ).
   It save them with respect to the requesting process ID so we can filter and
   categorize them according to their respective containers.
@@ -166,7 +112,7 @@ int vfs_write_func(struct pt_regs *ctx, struct file *file,
 }
 
 /*
-   eBPF program.
+   Parse packet headers.
    Filter IP and TCP packets, having payload not empty
    and containing 'HTTP', 'GET', 'POST' ... as first bytes of payload
 */
@@ -277,4 +223,3 @@ int hdr_parse(struct __sk_buff *skb) {
     }
     return 1;
 }
-

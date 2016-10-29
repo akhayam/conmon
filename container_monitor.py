@@ -79,8 +79,6 @@ def get_disk_access_type(number):
     return {
       1:'VFS_READ',
       2:'VFS_WRITE',
-      3:'BLK_READ',
-      4:'BLK_WRITE',
     }[number]
 
 def write_api_table_and_reset(api_map, tracefile):
@@ -148,10 +146,6 @@ for name in container_names:
 
 bpf_programs[0].attach_kprobe(event='vfs_read', fn_name='vfs_read_func')
 bpf_programs[0].attach_kprobe(event='vfs_write', fn_name='vfs_write_func')
-
-bpf_programs[0].attach_kprobe(event='blk_start_request', fn_name='io_trace_start')
-bpf_programs[0].attach_kprobe(event='blk_mq_start_request', fn_name='io_trace_start')
-bpf_programs[0].attach_kprobe(event='blk_account_io_completion', fn_name='io_trace_completion')
 
 for j in range(0, total_containers):
     ipr.tc('add', 'sfq', container_interface[j].index, '1:')
