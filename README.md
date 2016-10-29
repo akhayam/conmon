@@ -56,6 +56,12 @@ The specific command for docker containers would look like:
 ```bash
 sudo python container_monitor.py -d DOCKER_VETH_NAME_1:DOCKER_PID_1, ..., DOCKER_VETH_NAME_n:DOCKER_PID_n 
 ```
+The docker PID can be obtained by:
+```bash
+docker ps # <docker_pid> will be given in the "CONTAINER ID" column
+ps aux | grep <docker_pid>
+```
+veth name can be obtained by running ```ifconfig```.
 
 The command for LXC containers would be:
 ```bash
