@@ -14,10 +14,8 @@
 // Copyright 2016 Ali Khayam
 
 
-#include <uapi/linux/ptrace.h>
 #include <net/sock.h>
 #include <bcc/proto.h>
-#include <linux/blkdev.h>
 
 #define IP_TCP   6
 #define ETH_HLEN 14
@@ -162,10 +160,6 @@ int hdr_parse(struct __sk_buff *skb) {
     value.bytes = 0;
     value.count = 0;
 
-    value_ptr = api_map.lookup_or_init(&key, &value);
-    value_ptr->bytes += payload_length;
-    value_ptr->count++;
-
 
     //http://stackoverflow.com/questions/25047905/http-request-minimum-size-in-bytes
     //minimum length of http request is always geater than 7 bytes
@@ -185,41 +179,26 @@ int hdr_parse(struct __sk_buff *skb) {
         j++;
     }
 
-    counter_t *http_value_ptr, http_value;
-    http_value.bytes = 0;
-    http_value.count = 0;
     //find a match with an HTTP message
     //GET
     if ((p[0] == 'G') && (p[1] == 'E') && (p[2] == 'T')) {
         key.api_type = HTTP_GET;
-        http_value_ptr = api_map.lookup_or_init(&key, &http_value);
-        http_value_ptr->bytes += payload_length;
-        http_value_ptr->count++;
-        return 1;
     }
     //POST
-    if ((p[0] == 'P') && (p[1] == 'O') && (p[2] == 'S') && (p[3] == 'T')) {
+    else if ((p[0] == 'P') && (p[1] == 'O') && (p[2] == 'S') && (p[3] == 'T')) {
         key.api_type = HTTP_POST;
-        http_value_ptr = api_map.lookup_or_init(&key, &http_value);
-        http_value_ptr->bytes += payload_length;
-        http_value_ptr->count++;
-        return 1;
     }
     //PUT
-    if ((p[0] == 'P') && (p[1] == 'U') && (p[2] == 'T')) {
+    else if ((p[0] == 'P') && (p[1] == 'U') && (p[2] == 'T')) {
         key.api_type = HTTP_PUT;
-        http_value_ptr = api_map.lookup_or_init(&key, &http_value);
-        http_value_ptr->bytes += payload_length;
-        http_value_ptr->count++;
-        return 1;
     }
     //DELETE
-    if ((p[0] == 'D') && (p[1] == 'E') && (p[2] == 'L') && (p[3] == 'E') && (p[4] == 'T') && (p[5] == 'E')) {
+    else if ((p[0] == 'D') && (p[1] == 'E') && (p[2] == 'L') && (p[3] == 'E') && (p[4] == 'T') && (p[5] == 'E')) {
         key.api_type = HTTP_DELETE;
-        http_value_ptr = api_map.lookup_or_init(&key, &http_value);
-        http_value_ptr->bytes += payload_length;
-        http_value_ptr->count++;
-        return 1;
     }
+
+    value_ptr = api_map.lookup_or_init(&key, &value);
+    value_ptr->bytes += payload_length;
+    value_ptr->count++;
     return 1;
 }
